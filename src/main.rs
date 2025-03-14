@@ -18,15 +18,22 @@ fn convert_images_in_directory(input_dir: &Path, output_dir: &Path) {
             let new_output_dir = output_dir.join(path.file_name().unwrap());
             convert_images_in_directory(&path, &new_output_dir);
         } else if path.extension().map_or(false, |ext| ext == "png") {
-            // Lire l'image PNG
-            let img = image::open(&path).unwrap();
             // Définir le chemin de sortie avec l'extension .webp
             let output_path = output_dir.join(path.file_stem().unwrap()).with_extension("webp");
+
+            // Vérifier si le fichier de sortie existe déjà
+            if output_path.exists() {
+                println!("Skipping {}, already converted", path.display());
+                continue;
+            }
+
+            // Lire l'image PNG
+            let img = image::open(&path).unwrap();
 
             // Enregistrer l'image en format WebP
             img.save_with_format(&output_path, ImageFormat::WebP).unwrap();
 
-            // Message indiquant que la conversion a été effectuée
+            // Afficher un message indiquant que la conversion a été effectuée
             println!("Converted {} to {}", path.display(), output_path.display());
         }
     }
