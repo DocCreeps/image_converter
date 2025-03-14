@@ -1,9 +1,10 @@
 use image::ImageFormat;
+use rfd::FileDialog;
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 
 // Fonction récursive pour convertir les images dans un répertoire et ses sous-répertoires
-fn convert_images_in_directory(input_dir: &Path, output_dir: &Path) {
+fn convert_images_in_directory(input_dir: &PathBuf, output_dir: &PathBuf) {
     // Créer le dossier de sortie s'il n'existe pas
     fs::create_dir_all(output_dir).unwrap();
 
@@ -40,11 +41,18 @@ fn convert_images_in_directory(input_dir: &Path, output_dir: &Path) {
 }
 
 fn main() {
-    // Chemin vers le dossier sur le bureau contenant les images PNG
-    let input_dir = Path::new("C:/Users/doria/Bureau/logos");
-    // Chemin vers le dossier de sortie pour les images WebP
-    let output_dir = Path::new("C:/Users/doria/Bureau/logos-webp");
+    // Demander à l'utilisateur de sélectionner le répertoire d'entrée
+    let input_dir = FileDialog::new()
+        .set_title("Select Input Directory")
+        .pick_folder()
+        .expect("Failed to select input directory");
+
+    // Demander à l'utilisateur de sélectionner le répertoire de sortie
+    let output_dir = FileDialog::new()
+        .set_title("Select Output Directory")
+        .pick_folder()
+        .expect("Failed to select output directory");
 
     // Appeler la fonction de conversion
-    convert_images_in_directory(input_dir, output_dir);
+    convert_images_in_directory(&input_dir, &output_dir);
 }
