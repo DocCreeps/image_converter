@@ -52,7 +52,6 @@ Dépendances
 -----------
 
 -   [image](https://crates.io/crates/image) : Utilisé pour lire et écrire des images.
--   [webp](https://crates.io/crates/webp) : Utilisé pour encoder les images en format WebP.
 
 Contribution
 ------------
