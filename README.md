@@ -1,55 +1,63 @@
-# Image Converter
-Ce projet est un outil de ligne de commande écrit en Rust pour convertir des images PNG en format WebP. Il parcourt récursivement un répertoire d'entrée, convertit chaque image PNG trouvée, et enregistre les images converties dans un répertoire de sortie.
+# Convertisseur d'Images WebP
+
+Ce projet est une application graphique écrite en Rust utilisant eframe pour convertir des images (PNG, JPG, JPEG, BMP) au format WebP. Il permet de sélectionner un répertoire d'entrée, un répertoire de sortie, et de lancer la conversion de manière intuitive.
 
 ## Fonctionnalités
-- Conversion récursive des images PNG en WebP. - Vérification pour éviter de reconvertir les images déjà traitées. - Affichage des messages de progression dans la console.
+
+-   **Interface graphique conviviale** : Sélection facile des répertoires d'entrée et de sortie via une interface graphique.
+-   **Conversion récursive** : Convertit toutes les images dans le répertoire d'entrée et ses sous-répertoires.
+-   **Formats supportés** : Prend en charge les formats d'image PNG, JPG, JPEG et BMP.
+-   **Prévention des doublons** : Vérifie si une image a déjà été convertie pour éviter les conversions inutiles.
+-   **Ouverture automatique du répertoire de sortie** : Ouvre le répertoire de sortie une fois la conversion terminée.
+-   **Configuration du répertoire de sortie** : Possibilité de choisir le répertoire de sortie via une boîte de dialogue.
+
 ## Prérequis
--  [Rust](https://www.rust-lang.org/tools/install) doit être installé sur votre machine. -  [Cargo](https://doc.rust-lang.org/cargo/), le gestionnaire de paquets de Rust, doit également être installé.
+
+-   [Rust](https://www.rust-lang.org/tools/install) doit être installé sur votre machine.
+-   [Cargo](https://doc.rust-lang.org/cargo/), le gestionnaire de paquets de Rust, doit également être installé.
+
 ## Installation
-1. Clonez ce dépôt :   
-```
-    ssh  git clone https://github.com/votre-utilisateur/image-converter.git
-    
-    cd image-converter`
-```
 
-2.  Installez les dépendances :
+1.  Clonez ce dépôt :
 
-```
+    ```bash
+    git clone [https://github.com/votre-utilisateur/image-converter.git](https://github.com/votre-utilisateur/image-converter.git)
+    cd image-converter
+    ```
+
+2.  Installez les dépendances et compilez le projet :
+
+    ```bash
     cargo build --release
-```
+    ```
 
+## Utilisation
 
-Utilisation
------------
+1.  Exécutez l'application :
 
-1.  Modifiez les chemins d'entrée et de sortie dans le fichier `src/main.rs` pour correspondre à vos besoins :
+    ```bash
+    cargo run --release
+    ```
 
-```
-    let input_dir =  Path::new("C:/Users/doria/Bureau/logos");  
-    let output_dir =  Path::new("C:/Users/doria/Bureau/logos-webp");
-```
+2.  Une fenêtre s'ouvrira, vous permettant de :
 
+    -   Sélectionner le répertoire contenant les images à convertir en cliquant sur "Sélectionner...".
+    -   Visualiser le répertoire de sortie actuel.
+    -   Changer le répertoire de sortie en cliquant sur "Changer le répertoire de sortie".
+    -   Lancer la conversion en cliquant sur "Convertir les images".
 
-2.  Exécutez le programme :
-```
-    cargo run
-```
+3.  Une fois la conversion terminée, le répertoire de sortie s'ouvrira automatiquement.
 
-Exemple de sortie
------------------
+## Dépendances
 
-Le programme affichera des messages indiquant quelles images ont été converties ou sautées :
+-   [eframe](https://crates.io/crates/eframe) : Framework pour la création d'interfaces graphiques.
+-   [egui](https://crates.io/crates/egui) : Bibliothèque d'interface utilisateur pour eframe.
+-   [image](https://crates.io/crates/image) : Utilisé pour lire et écrire des images.
+-   [rfd](https://crates.io/crates/rfd) : Boîte de dialogue pour la sélection de fichiers et de répertoires.
+-   [dirs](https://crates.io/crates/dirs) : Pour obtenir les répertoires spécifiques à l'utilisateur.
 
+## Notes
 
-```
-   Converted C:/Users/doria/Bureau/logos/image1.png to C:/Users/doria/Bureau/logos-webp/image1.webp 
-    Skipping C:/Users/doria/Bureau/logos/image2.png, already converted
-```
-
-
-Dépendances
------------
-
--   [image](https://crates.io/crates/image) : Utilisé pour lire et écrire des images.
-
+-   L'application crée un dossier "webp" sur le bureau par défaut si aucun répertoire de sortie n'est spécifié.
+-   Les images converties conservent la même structure de répertoires que le répertoire d'entrée.
+-   L'application gère les doublons en vérifiant si une image a déjà été convertie dans le répertoire de sortie.
