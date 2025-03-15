@@ -53,7 +53,3 @@ Dépendances
 
 -   [image](https://crates.io/crates/image) : Utilisé pour lire et écrire des images.
 
-Contribution
-------------
-
-Les contributions sont les bienvenues ! Si vous trouvez un bug ou avez une suggestion, n'hésitez pas à ouvrir une issue ou à soumettre une pull request.
