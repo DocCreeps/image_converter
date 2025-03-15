@@ -18,24 +18,27 @@ fn convert_images_in_directory(input_dir: &PathBuf, output_dir: &PathBuf) {
             // Si c'est un dossier, appeler récursivement la fonction
             let new_output_dir = output_dir.join(path.file_name().unwrap());
             convert_images_in_directory(&path, &new_output_dir);
-        } else if path.extension().map_or(false, |ext| ext == "png") {
-            // Définir le chemin de sortie avec l'extension .webp
-            let output_path = output_dir.join(path.file_stem().unwrap()).with_extension("webp");
+        } else if let Some(extension) = path.extension() {
+            let extension = extension.to_str().unwrap().to_lowercase();
+            if extension == "png" || extension == "jpg" || extension == "jpeg" || extension == "bmp" {
+                // Définir le chemin de sortie avec l'extension .webp
+                let output_path = output_dir.join(path.file_stem().unwrap()).with_extension("webp");
 
-            // Vérifier si le fichier de sortie existe déjà
-            if output_path.exists() {
-                println!("Skipping {}, already converted", path.display());
-                continue;
+                // Vérifier si le fichier de sortie existe déjà
+                if output_path.exists() {
+                    println!("Skipping {}, already converted", path.display());
+                    continue;
+                }
+
+                // Lire l'image
+                let img = image::open(&path).unwrap();
+
+                // Enregistrer l'image en format WebP
+                img.save_with_format(&output_path, ImageFormat::WebP).unwrap();
+
+                // Afficher un message indiquant que la conversion a été effectuée
+                println!("Converted {} to {}", path.display(), output_path.display());
             }
-
-            // Lire l'image PNG
-            let img = image::open(&path).unwrap();
-
-            // Enregistrer l'image en format WebP
-            img.save_with_format(&output_path, ImageFormat::WebP).unwrap();
-
-            // Afficher un message indiquant que la conversion a été effectuée
-            println!("Converted {} to {}", path.display(), output_path.display());
         }
     }
 }
