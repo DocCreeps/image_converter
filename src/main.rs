@@ -1,3 +1,7 @@
+/// Application graphique pour convertir des images (PNG, JPG, JPEG, BMP) en WebP.
+/// Permet de convertir soit une seule image, soit toutes les images d'un répertoire et ses sous-répertoires.
+/// Utilise `eframe` pour l'interface utilisateur, `image` pour la conversion, et `rfd` pour les dialogues de fichiers.
+/// Supporte Windows, macOS et Linux pour l'ouverture du dossier de sortie.
 use eframe::{egui, App, CreationContext, Frame, NativeOptions};
 use image::ImageFormat;
 use rfd::FileDialog;
@@ -6,43 +10,44 @@ use std::path::PathBuf;
 use std::process::{Command, exit};
 use dirs;
 
-// Fonction pour convertir les images dans un répertoire et ses sous-répertoires en format WebP.
+/// Type d'entrée sélectionné par l'utilisateur : fichier unique ou répertoire.
+enum InputType {
+    File(PathBuf),
+    Directory(PathBuf),
+}
+
+/// Convertit récursivement les images (PNG, JPG, JPEG, BMP) d'un répertoire et ses sous-répertoires en WebP.
+/// Ignore les fichiers déjà convertis et conserve la structure des dossiers.
 fn convert_images_in_directory(input_dir: &PathBuf, output_dir: &PathBuf, base_input_dir: &PathBuf) {
-    // Créer le répertoire de sortie s'il n'existe pas.
+    // Crée le répertoire de sortie, panique en cas d'erreur.
     fs::create_dir_all(output_dir).unwrap();
 
-    // Lire les entrées (fichiers et répertoires) du répertoire d'entrée.
+    // Lit les entrées du répertoire d'entrée.
     let entries = fs::read_dir(input_dir).unwrap();
 
-    // Itérer sur chaque entrée.
+    // Parcourt chaque entrée (fichier ou dossier).
     for entry in entries {
         let entry = entry.unwrap();
         let path = entry.path();
 
-        // Si l'entrée est un répertoire, appeler récursivement la fonction.
+        // Traite les sous-répertoires récursivement.
         if path.is_dir() {
-            // Créer le chemin du nouveau répertoire d'entrée.
-            let new_input_dir = path.clone();
-            // Calculer le chemin relatif par rapport au répertoire d'entrée de base.
             let relative_path = path.strip_prefix(base_input_dir).unwrap();
-            // Créer le chemin du nouveau répertoire de sortie.
             let new_output_dir = output_dir.join(relative_path);
-            // Appeler récursivement la fonction avec les nouveaux chemins.
-            convert_images_in_directory(&new_input_dir, &new_output_dir, base_input_dir);
+            convert_images_in_directory(&path, &new_output_dir, base_input_dir);
         } else if let Some(extension) = path.extension() {
-            // Si l'entrée est un fichier image (png, jpg, jpeg, bmp), le convertir en WebP.
+            // Convertit les images PNG, JPG, JPEG, BMP en WebP.
             let extension = extension.to_str().unwrap().to_lowercase();
             if extension == "png" || extension == "jpg" || extension == "jpeg" || extension == "bmp" {
-                // Créer le chemin du fichier de sortie WebP.
                 let output_path = output_dir.join(path.file_stem().unwrap()).with_extension("webp");
 
-                // Si le fichier de sortie existe déjà, ignorer la conversion.
+                // Ignore si le fichier WebP existe déjà.
                 if output_path.exists() {
                     println!("Ignorer {}, déjà converti", path.display());
                     continue;
                 }
 
-                // Ouvrir l'image et la convertir en WebP.
+                // Charge l'image et la sauvegarde en WebP. Panique si l'opération échoue.
                 let img = image::open(&path).unwrap();
                 img.save_with_format(&output_path, ImageFormat::WebP).unwrap();
                 println!("Converti {} en {}", path.display(), output_path.display());
@@ -51,61 +56,92 @@ fn convert_images_in_directory(input_dir: &PathBuf, output_dir: &PathBuf, base_i
     }
 }
 
-// Structure pour l'application de conversion d'images.
-struct ImageConverterApp {
-    input_dir: Option<PathBuf>,
-    output_dir: PathBuf,
-}
+/// Convertit une seule image (PNG, JPG, JPEG, BMP) en WebP dans le répertoire de sortie.
+fn convert_single_image(input_file: &PathBuf, output_dir: &PathBuf) {
+    // Crée le répertoire de sortie, panique en cas d'erreur.
+    fs::create_dir_all(output_dir).unwrap();
 
-// Implémentation de la valeur par défaut pour ImageConverterApp.
-impl Default for ImageConverterApp {
-    fn default() -> Self {
-        let desktop_dir = dirs::desktop_dir().unwrap_or(PathBuf::from("."));
-        Self {
-            input_dir: None,
-            output_dir: desktop_dir.join("webp"), // Crée le dossier "webp" sur le bureau
+    // Vérifie si le fichier est une image prise en charge.
+    if let Some(extension) = input_file.extension() {
+        let extension = extension.to_str().unwrap().to_lowercase();
+        if extension == "png" || extension == "jpg" || extension == "jpeg" || extension == "bmp" {
+            let output_path = output_dir.join(input_file.file_stem().unwrap()).with_extension("webp");
+
+            // Ignore si le fichier WebP existe déjà.
+            if output_path.exists() {
+                println!("Ignorer {}, déjà converti", input_file.display());
+                return;
+            }
+
+            // Charge l'image et la sauvegarde en WebP. Panique si l'opération échoue.
+            let img = image::open(input_file).unwrap();
+            img.save_with_format(&output_path, ImageFormat::WebP).unwrap();
+            println!("Converti {} en {}", input_file.display(), output_path.display());
         }
     }
 }
 
-// Implémentation du trait App pour ImageConverterApp.
+/// Structure principale de l'application, gérant l'entrée (fichier ou répertoire) et le répertoire de sortie.
+struct ImageConverterApp {
+    input: Option<InputType>, // Fichier ou répertoire sélectionné par l'utilisateur.
+    output_dir: PathBuf,      // Répertoire de sortie pour les images converties.
+}
+
+/// Définit les valeurs par défaut pour `ImageConverterApp`, avec le dossier de sortie sur le bureau.
+impl Default for ImageConverterApp {
+    fn default() -> Self {
+        let desktop_dir = dirs::desktop_dir().unwrap_or(PathBuf::from("."));
+        Self {
+            input: None,
+            output_dir: desktop_dir.join("webp"), // Crée le dossier "webp" sur le bureau.
+        }
+    }
+}
+
+/// Implémente l'interface graphique avec `eframe`.
 impl App for ImageConverterApp {
-    // Fonction appelée à chaque mise à jour de l'interface utilisateur.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) { // Signature correcte avec _frame
+    /// Met à jour l'interface graphique à chaque frame, gérant la sélection de l'entrée et la conversion.
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // Titre de l'application.
+            // Affiche le titre de l'application.
             ui.heading("Convertisseur d'images");
-            // Ajout d'un espace vertical.
             ui.add_space(10.0);
 
-            // Groupe pour le répertoire d'entrée.
+            // Groupe pour sélectionner l'entrée (fichier ou répertoire).
             egui::Frame::group(&ctx.style()).show(ui, |ui| {
-                // Étiquette du groupe.
-                ui.label("Répertoire d'entrée :");
-                // Disposition horizontale des éléments.
+                ui.label("Entrée :");
                 ui.horizontal(|ui| {
-                    // Bouton pour sélectionner le répertoire d'entrée.
-                    if ui.button("Sélectionner...").clicked() {
-                        // Ouvre une boîte de dialogue pour choisir un répertoire.
-                        if let Some(path) = FileDialog::new().pick_folder() {
-                            // Enregistre le chemin du répertoire sélectionné.
-                            self.input_dir = Some(path);
+                    // Bouton pour sélectionner un fichier unique.
+                    if ui.button("Sélectionner un fichier...").clicked() {
+                        if let Some(path) = FileDialog::new()
+                            .add_filter("Images", &["png", "jpg", "jpeg", "bmp"])
+                            .pick_file()
+                        {
+                            self.input = Some(InputType::File(path));
                         }
                     }
-                    // Affiche le chemin du répertoire sélectionné.
-                    if let Some(path) = &self.input_dir {
-                        ui.label(path.display().to_string());
+                    // Bouton pour sélectionner un répertoire.
+                    if ui.button("Sélectionner un répertoire...").clicked() {
+                        if let Some(path) = FileDialog::new().pick_folder() {
+                            self.input = Some(InputType::Directory(path));
+                        }
+                    }
+                    // Affiche le chemin de l'entrée sélectionnée.
+                    if let Some(input) = &self.input {
+                        match input {
+                            InputType::File(path) => ui.label(format!("Fichier: {}", path.display())),
+                            InputType::Directory(path) => ui.label(format!("Répertoire: {}", path.display())),
+                        };
                     }
                 });
             });
 
-            // Ajout d'un espace vertical.
             ui.add_space(10.0);
 
-            // Affiche le chemin du répertoire de sortie.
+            // Affiche le répertoire de sortie actuel.
             ui.label(format!("Répertoire de sortie : {}", self.output_dir.display()));
 
-            // Bouton pour changer le répertoire de sortie.
+            // Bouton pour modifier le répertoire de sortie.
             if ui.button("Changer le répertoire de sortie").clicked() {
                 if let Some(path) = FileDialog::new().pick_folder() {
                     self.output_dir = path;
@@ -114,34 +150,41 @@ impl App for ImageConverterApp {
 
             ui.add_space(20.0);
 
-            // Bouton pour lancer la conversion.
-            if ui.button("Convertir les images").clicked() {
-                if let Some(input_dir) = &self.input_dir {
-                    // Récupère le nom du répertoire d'entrée.
-                    let input_dir_name = input_dir.file_name().unwrap();
-                    // Crée le chemin du répertoire de sortie final.
-                    let final_output_dir = self.output_dir.join(input_dir_name);
-                    // Appelle la fonction de conversion.
-                    convert_images_in_directory(input_dir, &final_output_dir, input_dir);
+            // Bouton lançant la conversion et ouvrant le dossier de sortie.
+            if ui.button("Convertir").clicked() {
+                if let Some(input) = &self.input {
+                    match input {
+                        InputType::File(file_path) => {
+                            // Convertit une seule image.
+                            convert_single_image(file_path, &self.output_dir);
+                        }
+                        InputType::Directory(dir_path) => {
+                            // Convertit toutes les images du répertoire.
+                            let dir_name = dir_path.file_name().unwrap();
+                            let final_output_dir = self.output_dir.join(dir_name);
+                            convert_images_in_directory(dir_path, &final_output_dir, dir_path);
+                        }
+                    }
 
-                    // Ouvre le répertoire de sortie avec l'explorateur de fichiers.
+                    // Ouvre le répertoire de sortie dans l'explorateur de fichiers (Windows, macOS, Linux).
                     if cfg!(target_os = "windows") {
                         Command::new("explorer")
-                            .arg(final_output_dir.to_str().unwrap())
+                            .arg(self.output_dir.to_str().unwrap())
                             .spawn()
                             .unwrap();
                     } else if cfg!(target_os = "macos") {
                         Command::new("open")
-                            .arg(final_output_dir.to_str().unwrap())
+                            .arg(self.output_dir.to_str().unwrap())
                             .spawn()
                             .unwrap();
                     } else {
                         Command::new("xdg-open")
-                            .arg(final_output_dir.to_str().unwrap())
+                            .arg(self.output_dir.to_str().unwrap())
                             .spawn()
                             .unwrap();
                     }
-                    // Termine le programme proprement.
+
+                    // Termine le programme après la conversion et l'ouverture du dossier.
                     exit(0);
                 }
             }
@@ -149,20 +192,18 @@ impl App for ImageConverterApp {
     }
 }
 
-// Fonction principale du programme.
+/// Point d'entrée du programme, configure et lance l'application graphique.
 fn main() {
-    // Configuration des options natives de l'application.
+    // Configure les options de la fenêtre (taille 400x300 pixels).
     let native_options = NativeOptions {
-        // Configuration de la fenêtre de l'application.
         viewport: egui::ViewportBuilder::default().with_inner_size([400.0, 300.0]),
         ..Default::default()
     };
 
-    // Lancement de l'application eframe.
+    // Lance l'application `eframe` avec `ImageConverterApp`.
     eframe::run_native(
-        "Convertisseur d'images", // Titre de l'application.
+        "Convertisseur d'images",
         native_options,
-        // Fonction de création de l'application.
         Box::new(|_cc: &CreationContext| Ok(Box::new(ImageConverterApp::default()))),
     )
         .unwrap();
